@@ -1,0 +1,75 @@
+name: Build and Deploy to Public Repo
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.repository != vars.GH_PAGES_REPOSITORY
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Patch next.config for GitHub Pages
+        run: |
+          BASE_PATH="/${{ vars.GH_PAGES_REPOSITORY }}"
+
+          if grep -q "basePath" next.config.ts; then
+            sed -i "s|basePath:.*|basePath: '${BASE_PATH}',|" next.config.ts
+          else
+            sed -i "/const nextConfig: NextConfig = {/a \  basePath: '${BASE_PATH}'," next.config.ts
+          fi
+
+          cat next.config.ts
+
+      - name: Build and export static files
+        run: |
+          npm run build
+
+      - name: Generate GitHub App Installation Token
+        id: gen_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ vars.GH_PAGES_REPOSITORY }}
+
+      - name: Push built files to public repo
+        env:
+          INSTALL_TOKEN: ${{ steps.gen_token.outputs.token }}
+        run: |
+          git config --global user.name "github-app[bot]"
+          git config --global user.email "github-app[bot]@users.noreply.github.com"
+          git clone https://x-access-token:${INSTALL_TOKEN}@github.com/${{ vars.GH_PAGES_REPOSITORY_OWNER }}/${{ vars.GH_PAGES_REPOSITORY }}.git temp-deploy
+          cd temp-deploy
+          git checkout ${{ vars.GH_PAGES_REPOSITORY_BRANCH }} || git checkout -b ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
+          rm -rf *
+          cp -R ../out/* .
+          touch ./.nojekyll
+          git add .
+          git commit -m "Deploy static site: $(date +'%Y-%m-%d %H:%M:%S')"
+          git push origin ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
