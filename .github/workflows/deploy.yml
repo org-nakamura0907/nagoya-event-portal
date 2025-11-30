@@ -41,20 +41,10 @@ jobs:
           echo "NEXT_PUBLIC_BASE_PATH is set to: ${NEXT_PUBLIC_BASE_PATH}"
           npm run build
 
-      - name: Generate GitHub App Installation Token
-        id: gen_token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.GH_APP_ID }}
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ vars.GH_PAGES_REPOSITORY }}
-
-
       - name: Deploy to Public Repo (using peaceiris/actions-gh-pages)
         uses: peaceiris/actions-gh-pages@v4
         with:
-          deploy_key: ${{ steps.gen_token.outputs.token }}
+          personal_token: ${{ secrets.PERSONAL_TOKEN }}
           publish_dir: ./out
           external_repository: ${{ github.repository_owner }}/${{ vars.GH_PAGES_REPOSITORY }}
           publish_branch: ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
