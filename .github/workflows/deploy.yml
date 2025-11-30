@@ -5,19 +5,18 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
 
 jobs:
   build:
     if: github.repository != vars.GH_PAGES_REPOSITORY
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      
     steps:
       - name: Checkout source repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -33,20 +32,11 @@ jobs:
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
 
-      - name: Patch next.config for GitHub Pages
+      - name: Build and export static files (with BASE_PATH)
+        env:
+          NEXT_PUBLIC_BASE_PATH: /${{ vars.GH_PAGES_REPOSITORY }}
         run: |
-          BASE_PATH="/${{ vars.GH_PAGES_REPOSITORY }}"
-
-          if grep -q "basePath" next.config.ts; then
-            sed -i "s|basePath:.*|basePath: '${BASE_PATH}',|" next.config.ts
-          else
-            sed -i "/const nextConfig: NextConfig = {/a \  basePath: '${BASE_PATH}'," next.config.ts
-          fi
-
-          cat next.config.ts
-
-      - name: Build and export static files
-        run: |
+          echo "NEXT_PUBLIC_BASE_PATH is set to: ${NEXT_PUBLIC_BASE_PATH}"
           npm run build
 
       - name: Generate GitHub App Installation Token
@@ -58,18 +48,14 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ vars.GH_PAGES_REPOSITORY }}
 
-      - name: Push built files to public repo
-        env:
-          INSTALL_TOKEN: ${{ steps.gen_token.outputs.token }}
-        run: |
-          git config --global user.name "github-app[bot]"
-          git config --global user.email "github-app[bot]@users.noreply.github.com"
-          git clone https://x-access-token:${INSTALL_TOKEN}@github.com/${{ vars.GH_PAGES_REPOSITORY_OWNER }}/${{ vars.GH_PAGES_REPOSITORY }}.git temp-deploy
-          cd temp-deploy
-          git checkout ${{ vars.GH_PAGES_REPOSITORY_BRANCH }} || git checkout -b ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
-          rm -rf *
-          cp -R ../out/* .
-          touch ./.nojekyll
-          git add .
-          git commit -m "Deploy static site: $(date +'%Y-%m-%d %H:%M:%S')"
-          git push origin ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
+
+      - name: Deploy to Public Repo (using peaceiris/actions-gh-pages)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ steps.gen_token.outputs.token }}
+          publish_dir: ./out
+          external_repository: ${{ github.repository_owner }}/${{ vars.GH_PAGES_REPOSITORY }}
+          publish_branch: ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
+          user_name: github-app[bot]
+          user_email: github-app[bot]@users.noreply.github.com
+          force_orphan: true
