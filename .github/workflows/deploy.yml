@@ -51,3 +51,4 @@ jobs:
           user_name: github-app[bot]
           user_email: github-app[bot]@users.noreply.github.com
           force_orphan: true
+          full_commit_message: "Deploying to GitHub Pages"
