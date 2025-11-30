@@ -5,15 +5,17 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     if: github.repository != vars.GH_PAGES_REPOSITORY
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
     permissions:
       contents: read
-      
     steps:
       - name: Checkout source repo
         uses: actions/checkout@v4
