@@ -1,0 +1,50 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  schedule:
+    - cron: '0 12 28 * *' # 毎月28日12時（UTC)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Security Check
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Run audit
+        run: pnpm audit --audit-level=moderate
+
+      # WARNING this action will perform attacks on the target website.
+      # 上記の警告があるため、念のため記載のみで対応はせず
+      # - name: OWASP ZAP Scan
+      #   uses: zaproxy/action-baseline@v0.13.0
+      #   with:
+      #     target: "https://www.zaproxy.org/"
