@@ -12,8 +12,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-  schedule:
-    - cron: '0 12 28 * *' # 毎月28日12時（UTC)
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -42,9 +40,22 @@ jobs:
       - name: Run audit
         run: pnpm audit --audit-level=moderate
 
+      # DAST
       # WARNING this action will perform attacks on the target website.
-      # NOTE: 上記の警告があるため、念のため記載のみで対応はせず
-      # - name: OWASP ZAP Scan
+      # NOTE: 上記の警告があるため、GitHub Pagesで公開している今回は利用せず
+      # - name: Run OWASP ZAP Scan
       #   uses: zaproxy/action-baseline@v0.13.0
       #   with:
       #     target: "https://www.zaproxy.org/"
+
+  # SAST
+  semgrep:
+    name: semgrep-oss/scan
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config auto
