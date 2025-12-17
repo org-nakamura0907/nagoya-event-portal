@@ -37,6 +37,17 @@ jobs:
           node-version: 20
           # cache: 'pnpm' pnpm installしていないため一時的にコメントアウト
 
+      # Secret Scanning
+      # NOTE: シークレット情報が含まれようがないため
+      # - name: Run Gitleaks
+      #   uses: gitleaks/gitleaks-action@v2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}}
+
+      # SCA
+      # TODO: OSV Scanner
+
       - name: Run audit
         run: pnpm audit --audit-level=moderate
 
@@ -59,3 +70,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: semgrep scan --config auto
+  # TODO: SARIF形式で出力してレポートを出す？
