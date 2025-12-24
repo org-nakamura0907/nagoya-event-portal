@@ -1,0 +1,92 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Security Check
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # cache: 'pnpm' pnpm installしていないため一時的にコメントアウト
+
+      # Secret Scanning
+      # NOTE: シークレット情報が含まれようがないため
+      # - name: Run Gitleaks
+      #   uses: gitleaks/gitleaks-action@v2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}}
+
+      # SCA
+      - name: Run audit
+        run: pnpm audit --audit-level=moderate
+
+      # DAST
+      # WARNING this action will perform attacks on the target website.
+      # NOTE: 上記の警告があるため、GitHub Pagesで公開している今回は利用せず
+      # - name: Run OWASP ZAP Scan
+      #   uses: zaproxy/action-baseline@v0.13.0
+      #   with:
+      #     target: "https://www.zaproxy.org/"
+
+  # SCA
+  osv-scanner:
+    name: OSV Scanner
+    if: github.event.pull_request.draft == false
+    uses: 'google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.1'
+    with:
+      upload-sarif: false
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+
+  # SAST
+  semgrep:
+    name: semgrep-oss/scan
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config auto --sarif > semgrep.sarif
+      # NOTE: プライベートリポジトリのため無効
+      # - name: Upload SARIF file for GitHub Advanced Security Dashboard
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: semgrep.sarif
+      #   if: always()

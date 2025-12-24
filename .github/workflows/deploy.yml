@@ -29,19 +29,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
 
-      - name: Build and export static files (with BASE_PATH)
+      - name: Build and export static files
         env:
           NEXT_PUBLIC_BASE_PATH: /${{ vars.GH_PAGES_REPOSITORY }}
         run: |
           echo "NEXT_PUBLIC_BASE_PATH is set to: ${NEXT_PUBLIC_BASE_PATH}"
           npm run build
 
-      - name: Deploy to Public Repo (using peaceiris/actions-gh-pages)
+      - name: Deploy to Public Repo
         uses: peaceiris/actions-gh-pages@v4
         with:
           personal_token: ${{ secrets.PERSONAL_TOKEN }}
@@ -51,4 +51,4 @@ jobs:
           user_name: github-app[bot]
           user_email: github-app[bot]@users.noreply.github.com
           force_orphan: true
-          full_commit_message: "Deploying to GitHub Pages"
+          full_commit_message: 'Deploying to GitHub Pages'
