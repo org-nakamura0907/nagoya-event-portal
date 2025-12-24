@@ -91,9 +91,7 @@ jobs:
         run: pnpm run build
 
       - name: Start Next.js app
-        run: pnpm run start &
-        env:
-          PORT: 3000
+        run: pnpm dlx serve out -l 3000 &
 
       - name: Wait for app to be ready
         run: pnpm dlx wait-on http://localhost:3000
