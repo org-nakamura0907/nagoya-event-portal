@@ -61,15 +61,11 @@ jobs:
   osv-scanner:
     name: OSV Scanner
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-slim
+    uses: 'google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.1'
     permissions:
       actions: read
       security-events: write
       contents: read
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: 'google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.1'
 
   # SAST
   semgrep:
