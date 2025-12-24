@@ -62,6 +62,8 @@ jobs:
     name: OSV Scanner
     if: github.event.pull_request.draft == false
     uses: 'google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.1'
+    with:
+      upload-sarif: false
     permissions:
       actions: read
       security-events: write
@@ -82,8 +84,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: semgrep scan --config auto --sarif > semgrep.sarif
-      - name: Upload SARIF file for GitHub Advanced Security Dashboard
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-        if: always()
+      # NOTE: プライベートリポジトリのため無効
+      # - name: Upload SARIF file for GitHub Advanced Security Dashboard
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: semgrep.sarif
+      #   if: always()
