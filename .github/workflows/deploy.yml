@@ -1,21 +1,24 @@
-name: Build and Deploy to Public Repo
+name: Deploy Next.js site to Pages
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
-    if: github.repository != vars.GH_PAGES_REPOSITORY
     runs-on: ubuntu-slim
     timeout-minutes: 5
-    permissions:
-      contents: read
     steps:
       - name: Checkout source repo
         uses: actions/checkout@v4
@@ -35,20 +38,21 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Build and export static files
-        env:
-          NEXT_PUBLIC_BASE_PATH: /${{ vars.GH_PAGES_REPOSITORY }}
         run: |
-          echo "NEXT_PUBLIC_BASE_PATH is set to: ${NEXT_PUBLIC_BASE_PATH}"
           npm run build
-
-      - name: Deploy to Public Repo
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          personal_token: ${{ secrets.PERSONAL_TOKEN }}
-          publish_dir: ./out
-          external_repository: ${{ github.repository_owner }}/${{ vars.GH_PAGES_REPOSITORY }}
-          publish_branch: ${{ vars.GH_PAGES_REPOSITORY_BRANCH }}
-          user_name: github-app[bot]
-          user_email: github-app[bot]@users.noreply.github.com
-          force_orphan: true
-          full_commit_message: 'Deploying to GitHub Pages'
+          path: ./out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-slim
+    needs: build
+    timeout-minutes: 5
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
