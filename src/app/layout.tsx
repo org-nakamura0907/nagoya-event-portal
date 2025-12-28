@@ -25,7 +25,12 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <main className="w-full max-w-3xl ml-auto mr-auto p-4">{children}</main>
+        <header className="w-full border-b bg-white">
+          <div className="flex h-16 max-w-3xl items-center px-4">
+            <h1 className="text-xl font-bold text-slate-900">Nagoya Event Portal</h1>
+          </div>
+        </header>
+        <main className="block w-full max-w-3xl mx-auto p-4">{children}</main>
       </body>
     </html>
   );
