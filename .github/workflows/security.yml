@@ -35,7 +35,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'pnpm' pnpm installしていないため一時的にコメントアウト
 
       # Secret Scanning
       # NOTE: シークレット情報が含まれようがないため
@@ -72,7 +71,7 @@ jobs:
   # SAST
   semgrep:
     name: semgrep-oss/scan
-    # if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
@@ -84,8 +83,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: semgrep scan --config auto --sarif > semgrep.sarif
-      - name: Upload SARIF file for GitHub Advanced Security Dashboard
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
         if: always()
